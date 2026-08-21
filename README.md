@@ -46,4 +46,14 @@ Pilot complete for Kishoreganj district (13 upazilas): data joined, road-network
 3. `src/access.py` + `src/score_pilot.py` — build road graph from an Overpass road dump, score nearest-facility travel time per upazila
 4. `src/make_map.py` — render the choropleth
 
-**Next:** scale beyond the pilot district (needs a spatial index + a population pcode crosswalk, see `docs/methodology.md`), cross-check OSM facility coverage against DGHS's own directory, correlate access scores with a poverty/literacy indicator.
+`score_pilot.py` and `make_map.py` now take `--district` (plus `--roads-path`/`--out`), so scoring a
+second district no longer means editing hardcoded constants — running with no args reproduces the
+Kishoreganj pilot outputs exactly. `join_data.py`'s population-to-boundary join now normalizes away
+admin-suffix/punctuation differences and falls back to a within-district fuzzy match, raising the
+match rate above the original 63% exact-name-join baseline (see `docs/methodology.md`). Run `pytest`
+for unit tests covering the name-matching and road-graph logic.
+
+**Next:** pull an Overpass road dump for a second district and run the now-generalized scoring
+pipeline against it (this environment currently can't reach Overpass/HDX, so that's untested end to
+end here), get a real ADM3 pcode crosswalk to replace the fuzzy name join, cross-check OSM facility
+coverage against DGHS's own directory, correlate access scores with a poverty/literacy indicator.
