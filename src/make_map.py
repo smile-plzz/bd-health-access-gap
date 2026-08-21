@@ -1,19 +1,31 @@
-"""Build an interactive choropleth map of pilot access-gap scores."""
+"""Build an interactive choropleth map of a district's access-gap scores."""
+
+import argparse
 
 import folium
 import geopandas as gpd
 
-SCORES_PATH = "data/processed/pilot_access_scores.geojson"
 FACILITIES_PATH = "data/processed/facilities_with_upazila.geojson"
-PILOT_DISTRICT = "Kishoreganj"
-OUT_PATH = "maps/kishoreganj_access_gap.html"
 
 
 def main() -> None:
-    scores = gpd.read_file(SCORES_PATH)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--district", default="Kishoreganj", help="adm2_name to map")
+    parser.add_argument(
+        "--scores-path",
+        default="data/processed/pilot_access_scores.geojson",
+        help="output of score_pilot.py for this district",
+    )
+    parser.add_argument("--facilities-path", default=FACILITIES_PATH)
+    parser.add_argument("--out", default=None, help="default: maps/<district_slug>_access_gap.html")
+    args = parser.parse_args()
+
+    out_path = args.out or f"maps/{args.district.lower().replace(' ', '_')}_access_gap.html"
+
+    scores = gpd.read_file(args.scores_path)
     scores = scores[["adm3_name", "total_pop", "nearest_facility_min", "geometry"]]
-    facilities = gpd.read_file(FACILITIES_PATH)
-    pilot_facilities = facilities[facilities["adm2_name"] == PILOT_DISTRICT]
+    facilities = gpd.read_file(args.facilities_path)
+    pilot_facilities = facilities[facilities["adm2_name"] == args.district]
 
     center = scores.geometry.union_all().centroid
     m = folium.Map(location=[center.y, center.x], zoom_start=10, tiles="cartodbpositron")
@@ -49,8 +61,8 @@ def main() -> None:
             popup=row.get("name") or row.get("amenity"),
         ).add_to(m)
 
-    m.save(OUT_PATH)
-    print(f"saved map to {OUT_PATH}")
+    m.save(out_path)
+    print(f"saved map to {out_path}")
 
 
 if __name__ == "__main__":

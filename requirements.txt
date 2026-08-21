@@ -8,3 +8,4 @@ jupyter
 shapely
 requests
 scipy
+pytest

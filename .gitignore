@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
+.pytest_cache/
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
