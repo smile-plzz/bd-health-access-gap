@@ -28,9 +28,11 @@ def fetch_facilities(place: str) -> gpd.GeoDataFrame:
         ox.settings.overpass_rate_limit = True
         ox.settings.requests_timeout = 180
         try:
+            print(f"trying mirror: {mirror}")
             gdf = ox.features_from_place(place, tags=TAGS)
             break
         except Exception as exc:  # noqa: BLE001 - try next mirror
+            print(f"mirror failed: {mirror} -> {exc}")
             last_error = exc
             continue
     else:
