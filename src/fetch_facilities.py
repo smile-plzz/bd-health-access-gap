@@ -14,10 +14,10 @@ import osmnx as ox
 TAGS = {"amenity": ["hospital", "clinic", "doctors", "pharmacy"]}
 
 # Public Overpass mirrors to fall back through if the default times out.
+# osmnx appends "/interpreter" itself, so these must be the bare API base.
 OVERPASS_MIRRORS = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass.openstreetmap.ru/api/interpreter",
+    "https://overpass-api.de/api",
+    "https://overpass.openstreetmap.ru/api",
 ]
 
 
