@@ -34,7 +34,9 @@ def main() -> None:
     facility_nodes = [index.nearest(pt.y, pt.x) for pt in pilot_facilities.geometry]
     print(f"pilot upazilas: {len(pilot)}, pilot facilities: {len(pilot_facilities)}")
 
-    centroids = pilot.geometry.centroid
+    # Bangladesh UTM zone 46N - project before centroid for an accurate result,
+    # then convert back to lat/lon for the road-graph lookup.
+    centroids = pilot.geometry.to_crs("EPSG:32646").centroid.to_crs("EPSG:4326")
     travel_times_s = []
     for pt in centroids:
         origin_node = index.nearest(pt.y, pt.x)

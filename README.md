@@ -38,4 +38,12 @@ docs/             # writeup, methodology notes, findings
 
 ## Status
 
-Data collected: facilities, population, and admin boundaries all in `data/raw/`. Next: join population to boundary polygons, build OSM road graph for a pilot district, compute nearest-facility travel time (`src/access.py`), start `notebooks/01_explore_data.ipynb`.
+Pilot complete for Kishoreganj district (13 upazilas): data joined, road-network graph built, nearest-facility travel time computed per upazila, choropleth map rendered, findings written up. See `docs/findings.md` for results and `maps/kishoreganj_access_gap.html` for the interactive map.
+
+**Pipeline, in order:**
+1. `src/fetch_facilities.py` — pull health facility POIs from OSM (already run, output in `data/raw/`)
+2. `src/join_data.py` — join population to boundaries, spatial-join facilities to upazilas → `data/processed/`
+3. `src/access.py` + `src/score_pilot.py` — build road graph from an Overpass road dump, score nearest-facility travel time per upazila
+4. `src/make_map.py` — render the choropleth
+
+**Next:** scale beyond the pilot district (needs a spatial index + a population pcode crosswalk, see `docs/methodology.md`), cross-check OSM facility coverage against DGHS's own directory, correlate access scores with a poverty/literacy indicator.
