@@ -1,0 +1,9 @@
+pandas
+geopandas
+osmnx
+networkx
+folium
+matplotlib
+jupyter
+shapely
+requests
