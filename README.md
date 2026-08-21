@@ -12,12 +12,14 @@ Geospatial analysis of healthcare facility accessibility across Bangladesh, usin
 
 | Dataset | Source | Status |
 |---|---|---|
-| Health facility locations (DGHS) | data.gov.bd / DGHS | TODO: download |
-| Population by upazila (BBS census) | data.gov.bd / BBS | TODO: download |
-| Road network | OpenStreetMap (Bangladesh extract via OSMnx) | pulled at runtime |
-| Administrative boundaries | data.gov.bd / GADM | TODO: download |
+| Health facility locations (hospital/clinic/doctors/pharmacy POIs, n=7473) | OpenStreetMap via Overpass API — `src/fetch_facilities.py` | done — `data/raw/osm_health_facilities.geojson` |
+| Population by upazila, 2022, age/sex-disaggregated | HDX `cod-ps-bgd` (`bgd_admpop_adm3_2022.csv`) | done |
+| Administrative boundaries (upazila polygons, pcode-matched to population) | HDX `cod-ab-bgd` (`bgd_admin_boundaries.geojson.zip` → `bgd_admin3.geojson`) | done |
+| Road network | OpenStreetMap (pulled per-district at analysis time via OSMnx) | pulled at runtime, not stored |
 
-Raw files go in `data/raw/` (gitignored — large files). Cleaned/processed outputs go in `data/processed/`.
+data.gov.bd's own health/population datasets turned out too thin for this (no coordinate data, population only as a scanned PDF report) — HDX's Common Operational Datasets and OSM directly filled the gap instead.
+
+Raw files go in `data/raw/` (gitignored — large files, reproducible via source or `src/fetch_facilities.py`). Cleaned/processed outputs go in `data/processed/`.
 
 ## Stack
 
@@ -36,4 +38,4 @@ docs/             # writeup, methodology notes, findings
 
 ## Status
 
-Skeleton stage. Next: pull DGHS facility list + BBS population data, geocode facilities, build OSM road graph for a pilot district.
+Data collected: facilities, population, and admin boundaries all in `data/raw/`. Next: join population to boundary polygons, build OSM road graph for a pilot district, compute nearest-facility travel time (`src/access.py`), start `notebooks/01_explore_data.ipynb`.

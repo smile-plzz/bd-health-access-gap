@@ -1,58 +1,76 @@
-"""Pull health facility POIs (hospitals, clinics, doctors) from OpenStreetMap.
+"""Pull health facility POIs (hospitals, clinics, doctors, pharmacies) for
+Bangladesh from OpenStreetMap via the Overpass API.
 
-Country-wide queries against Bangladesh are large (auto-split into many
-sub-queries by osmnx) and slow/fragile against the default Overpass
-instance. Default here to a single pilot place; pass --country to attempt
-the full-country pull once the pilot is validated.
+Uses curl as the transport rather than python's requests/urllib3 - in
+testing, python's HTTPS stack repeatedly hit connect timeouts against
+overpass-api.de from this environment while curl reached it immediately.
+If that turns out to be environment-specific, swap _run_overpass_query
+for a plain `requests.post` call.
 """
 
 import argparse
+import json
+import subprocess
 
-import geopandas as gpd
-import osmnx as ox
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-TAGS = {"amenity": ["hospital", "clinic", "doctors", "pharmacy"]}
-
-# Public Overpass mirrors to fall back through if the default times out.
-# osmnx appends "/interpreter" itself, so these must be the bare API base.
-OVERPASS_MIRRORS = [
-    "https://overpass-api.de/api",
-    "https://overpass.openstreetmap.ru/api",
-]
+QUERY_TEMPLATE = (
+    '[out:json][timeout:300];'
+    'area["ISO3166-1"="BD"][admin_level=2]->.a;'
+    '(node["amenity"~"hospital|clinic|doctors|pharmacy"](area.a);'
+    'way["amenity"~"hospital|clinic|doctors|pharmacy"](area.a););'
+    'out center tags;'
+)
 
 
-def fetch_facilities(place: str) -> gpd.GeoDataFrame:
-    last_error = None
-    for mirror in OVERPASS_MIRRORS:
-        ox.settings.overpass_url = mirror
-        ox.settings.overpass_rate_limit = True
-        ox.settings.requests_timeout = 180
-        try:
-            print(f"trying mirror: {mirror}")
-            gdf = ox.features_from_place(place, tags=TAGS)
-            break
-        except Exception as exc:  # noqa: BLE001 - try next mirror
-            print(f"mirror failed: {mirror} -> {exc}")
-            last_error = exc
-            continue
-    else:
-        raise RuntimeError(f"all Overpass mirrors failed for '{place}'") from last_error
+def _run_overpass_query(query: str, timeout: int = 320) -> dict:
+    result = subprocess.run(
+        ["curl", "-s", "-m", str(timeout), "-X", "POST", "-d", query, OVERPASS_URL],
+        capture_output=True,
+        check=True,
+    )
+    return json.loads(result.stdout)
 
-    keep_cols = [c for c in ["name", "amenity", "geometry", "addr:city", "addr:district"] if c in gdf.columns]
-    return gdf[keep_cols]
+
+def _elements_to_geojson(elements: list[dict]) -> dict:
+    features = []
+    for el in elements:
+        if el["type"] == "node":
+            lat, lon = el["lat"], el["lon"]
+        else:
+            center = el.get("center")
+            if not center:
+                continue
+            lat, lon = center["lat"], center["lon"]
+        tags = el.get("tags", {})
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "properties": {
+                    "osm_id": el["id"],
+                    "osm_type": el["type"],
+                    "amenity": tags.get("amenity"),
+                    "name": tags.get("name"),
+                    "addr_city": tags.get("addr:city"),
+                    "addr_district": tags.get("addr:district"),
+                },
+            }
+        )
+    return {"type": "FeatureCollection", "features": features}
+
+
+def fetch_bangladesh_facilities() -> dict:
+    data = _run_overpass_query(QUERY_TEMPLATE)
+    return _elements_to_geojson(data["elements"])
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--place", default="Dhaka District, Bangladesh", help="pilot area (default: Dhaka District)")
-    parser.add_argument("--country", action="store_true", help="fetch all of Bangladesh instead of the pilot place")
-    parser.add_argument("--out", default=None, help="output GeoJSON path")
+    parser.add_argument("--out", default="data/raw/osm_health_facilities.geojson")
     args = parser.parse_args()
 
-    place = "Bangladesh" if args.country else args.place
-    out_path = args.out or f"data/raw/osm_health_facilities_{'bd' if args.country else 'pilot'}.geojson"
-
-    facilities = fetch_facilities(place)
-    print(f"fetched {len(facilities)} facilities for '{place}'")
-    facilities.to_file(out_path, driver="GeoJSON")
-    print(f"saved to {out_path}")
+    geojson = fetch_bangladesh_facilities()
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(geojson, f)
+    print(f"fetched {len(geojson['features'])} facilities, saved to {args.out}")

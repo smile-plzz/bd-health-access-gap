@@ -17,5 +17,6 @@ Which upazilas in Bangladesh have the worst road-network access to health facili
 ## Known limitations to address later
 
 - Straight pairwise nearest-facility search in `access.py` is O(n) per origin — fine for a pilot district, needs a spatial index (e.g. `scipy.cKDTree` on graph nodes) before scaling nationally.
-- Nominatim geocoding is rate-limited (1 req/sec) and imprecise for informal place names — DGHS facility list may already have coordinates, check before geocoding.
+- OSM facility POIs (`amenity=hospital/clinic/doctors/pharmacy`) are crowd-tagged, not an official registry — coverage is uneven by region, and there's no facility-capacity/type detail beyond the tag. Good enough for a pilot; cross-check against DGHS's "Doctor Directory" dataset on data.gov.bd before drawing strong conclusions.
 - Travel time via `drive` network may not reflect real access in areas dependent on walking/rickshaw/boat.
+- In this dev environment, python's `requests`/urllib3 stack repeatedly failed to connect to Overpass API hosts while `curl` reached them fine — `src/fetch_facilities.py` shells out to curl for that reason. Worth retesting plain `requests` if this moves to a different machine/CI.
